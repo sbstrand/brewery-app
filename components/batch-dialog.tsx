@@ -160,7 +160,6 @@ export function BatchDialog({
                         if (!s) return s;
                         const updates: Partial<EditState> = { stage: next };
                         if (next === "Brewing" && !s.actualBrewDate) updates.actualBrewDate = today();
-                        if (next === "Packaging" && !s.packageDate) updates.packageDate = today();
                         return { ...s, ...updates };
                       });
                     }}

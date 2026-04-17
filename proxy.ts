@@ -14,7 +14,7 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
+  const supabase = createServerClient(env.supabaseUrl!, env.supabaseAnonKey!, {
     cookies: {
       getAll() { return request.cookies.getAll(); },
       setAll(cookiesToSet) {
