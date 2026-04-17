@@ -89,7 +89,6 @@ export type Activity = {
   date: string;
   title: string;
   detail: string;
-  batchId?: string;
 };
 
 export type BatchLog = {
@@ -99,23 +98,6 @@ export type BatchLog = {
   note: string;
   createdBy: string; // user's full name
   createdAt: string;
-};
-
-export type RecipeIngredient = {
-  id: string;
-  recipeId: string;
-  inventoryItemId: string;
-  inventoryItemName: string;
-  quantity: number;
-  unit: string;
-};
-
-export type Recipe = {
-  id: string;
-  beerId: string;
-  beerName: string;
-  batchSizeBbl: number;
-  ingredients: RecipeIngredient[];
 };
 
 export type UserStatus = "pending" | "active" | "inactive";

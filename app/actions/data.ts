@@ -15,84 +15,6 @@ function readOptionalNumber(formData: FormData, key: string): number | null {
   return isNaN(n) ? null : n;
 }
 
-// ─── Recipes ──────────────────────────────────────────────────────────────────
-
-export async function upsertRecipe(formData: FormData) {
-  const beerId = readField(formData, "beerId");
-  if (!beerId) throw new Error("Missing beerId");
-  const supabase = await createSupabaseServerClient();
-
-  // Upsert recipe row
-  const { data: recipe, error: recipeError } = await supabase
-    .from("recipes")
-    .upsert({ beer_id: beerId, batch_size_bbl: Number(readField(formData, "batchSizeBbl")) || 1 }, { onConflict: "beer_id" })
-    .select("id")
-    .single();
-  if (recipeError) throw new Error(recipeError.message);
-
-  // Replace all ingredients
-  await supabase.from("recipe_ingredients").delete().eq("recipe_id", recipe.id);
-
-  const ids = formData.getAll("ingredientItemId") as string[];
-  const quantities = formData.getAll("ingredientQuantity") as string[];
-
-  const rows = ids
-    .map((id, i) => ({ recipe_id: recipe.id, inventory_item_id: id, quantity: Number(quantities[i]) }))
-    .filter((r) => r.inventory_item_id && r.quantity > 0);
-
-  if (rows.length) {
-    const { error } = await supabase.from("recipe_ingredients").insert(rows);
-    if (error) throw new Error(error.message);
-  }
-
-  revalidatePath("/admin/recipes");
-  revalidatePath("/batches");
-}
-
-export async function deductRecipeIngredients(batchId: string, beerId: string, scale = 1) {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const { data: recipe } = await supabase
-    .from("recipes")
-    .select("id, recipe_ingredients(inventory_item_id, quantity)")
-    .eq("beer_id", beerId)
-    .maybeSingle();
-
-  if (!recipe) return;
-
-  type IngRow = { inventory_item_id: string; quantity: number };
-  const ingredients = (recipe.recipe_ingredients as IngRow[]) ?? [];
-
-  for (const ing of ingredients) {
-    const { data: item } = await supabase
-      .from("inventory_items")
-      .select("on_hand")
-      .eq("id", ing.inventory_item_id)
-      .single();
-    if (!item) continue;
-
-    const scaledQty = +(ing.quantity * scale).toFixed(3);
-
-    await supabase.from("inventory_adjustments").insert({
-      inventory_item_id: ing.inventory_item_id,
-      batch_id: batchId,
-      adjustment_amount: -scaledQty,
-      adjustment_type: "used",
-      reason: "Deducted on brew start",
-      created_by: user?.id ?? null
-    });
-
-    await supabase
-      .from("inventory_items")
-      .update({ on_hand: (item.on_hand ?? 0) - scaledQty })
-      .eq("id", ing.inventory_item_id);
-  }
-
-  revalidatePath("/admin/inventory");
-  revalidatePath("/");
-}
-
 // ─── Batches ─────────────────────────────────────────────────────────────────
 
 export async function createBatch(formData: FormData) {
@@ -128,12 +50,10 @@ export async function createBatch(formData: FormData) {
     abv: readOptionalNumber(formData, "abv"),
     ibu: readOptionalNumber(formData, "ibu"),
     package_type: readField(formData, "packageType") || null,
-    notes: readField(formData, "notes"),
-    deduct_ingredients: readField(formData, "deductIngredients") === "true"
+    notes: readField(formData, "notes")
   });
 
   if (error) throw new Error(error.message);
-
   revalidatePath("/batches");
   revalidatePath("/");
 }
@@ -242,53 +162,6 @@ export async function updateUserRole(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
-// ─── Batch ingredient variance ───────────────────────────────────────────────
-
-export async function saveBatchIngredientVariance(formData: FormData) {
-  const batchId = readField(formData, "batchId");
-  const beerId = readField(formData, "beerId");
-  if (!batchId || !beerId) throw new Error("Missing batchId or beerId");
-
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const ids = formData.getAll("ingredientItemId") as string[];
-  const actuals = formData.getAll("ingredientActual") as string[];
-  const expected = formData.getAll("ingredientExpected") as string[];
-
-  for (let i = 0; i < ids.length; i++) {
-    const itemId = ids[i];
-    const actualQty = Number(actuals[i]);
-    const expectedQty = Number(expected[i]);
-    const diff = +(actualQty - expectedQty).toFixed(3);
-    if (diff === 0 || !itemId) continue;
-
-    const { data: item } = await supabase
-      .from("inventory_items")
-      .select("on_hand")
-      .eq("id", itemId)
-      .single();
-    if (!item) continue;
-
-    await supabase.from("inventory_adjustments").insert({
-      inventory_item_id: itemId,
-      batch_id: batchId,
-      adjustment_amount: -diff,
-      adjustment_type: "correction",
-      reason: `Brew variance adjustment`,
-      created_by: user?.id ?? null
-    });
-
-    await supabase
-      .from("inventory_items")
-      .update({ on_hand: (item.on_hand ?? 0) - diff })
-      .eq("id", itemId);
-  }
-
-  revalidatePath("/admin/inventory");
-  revalidatePath("/");
-}
-
 // ─── Batch lifecycle ──────────────────────────────────────────────────────────
 
 export async function updateBatch(formData: FormData) {
@@ -313,40 +186,18 @@ export async function updateBatch(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  // Deduct recipe ingredients when transitioning to Brewing
-  const newStage = readField(formData, "stage");
-  if (newStage === "Brewing") {
-    const { data: batch } = await supabase
-      .from("batches")
-      .select("beer_id, target_volume_bbl, deduct_ingredients, actual_brew_date")
-      .eq("id", id)
-      .single();
-    // Only deduct if flag is set and this is the first time hitting Brewing (no prior brew date)
-    if (batch?.deduct_ingredients && !batch.actual_brew_date && batch.beer_id) {
-      const { data: recipe } = await supabase
-        .from("recipes")
-        .select("batch_size_bbl")
-        .eq("beer_id", batch.beer_id)
-        .maybeSingle();
-      const recipeVol = recipe?.batch_size_bbl ?? 1;
-      const scale = batch.target_volume_bbl > 0 && recipeVol > 0 ? batch.target_volume_bbl / recipeVol : 1;
-      await deductRecipeIngredients(id, batch.beer_id, scale);
-      // Clear the flag so it doesn't deduct again
-      await supabase.from("batches").update({ deduct_ingredients: false }).eq("id", id);
-    }
-  }
-
   // Log the update
   const note = readField(formData, "logNote");
   const stage = readField(formData, "stage");
-  const { data: { user } } = await supabase.auth.getUser();
-  const autoNote = note || `Stage updated to ${stage}.`;
-  await supabase.from("batch_logs").insert({
-    batch_id: id,
-    stage,
-    note: autoNote,
-    created_by: user?.id ?? null
-  });
+  if (note || stage) {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("batch_logs").insert({
+      batch_id: id,
+      stage,
+      note,
+      created_by: user?.id ?? null
+    });
+  }
 
   revalidatePath("/batches");
   revalidatePath("/");

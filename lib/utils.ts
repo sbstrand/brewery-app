@@ -24,12 +24,15 @@ export function generateBatchNumber(existingBatches: { batchNumber: string }[]):
 
 export function stageTone(stage: Batch["stage"]): string {
   switch (stage) {
-    case "Planned":      return "pill-planned";
-    case "Brewing":      return "pill-brewing";
-    case "Fermenting":   return "pill-fermenting";
-    case "Conditioning": return "pill-conditioning";
-    case "Packaging":    return "pill-packaging";
-    case "Completed":    return "pill-success";
+    case "Completed":
+      return "pill-success";
+    case "Packaging":
+    case "Conditioning":
+    case "Brewing":
+    case "Fermenting":
+      return "pill-warning";
+    case "Planned":
+      return "pill-neutral";
   }
 }
 

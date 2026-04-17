@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { Activity, Batch, Beer, InventoryItem, Recipe, Tank } from "@/lib/types";
+import { Activity, Batch, Beer, InventoryItem, Tank } from "@/lib/types";
 import { inventoryHealth, summarizeMetrics } from "@/lib/utils";
 
 type BatchRow = {
@@ -137,19 +137,16 @@ function mapInventoryItem(row: InventoryRow): InventoryItem {
 export const getAppData = cache(async function getAppData() {
   const supabase = await createSupabaseServerClient();
 
-  const [batchesResult, beersResult, tanksResult, inventoryResult, logsResult, recipesResult] = await Promise.all([
+  const [batchesResult, beersResult, tanksResult, inventoryResult, logsResult] = await Promise.all([
     supabase.from("batches").select("*").order("planned_brew_date", { ascending: false }),
     supabase.from("beers").select("*").order("name", { ascending: true }),
     supabase.from("tanks").select("*").order("name", { ascending: true }),
     supabase.from("inventory_items").select("*").order("name", { ascending: true }),
     supabase
       .from("batch_logs")
-      .select("id, created_at, stage, note, batches(id, beer_name, batch_number), app_users(full_name)")
+      .select("id, created_at, stage, note, batches(beer_name, batch_number), app_users(full_name)")
       .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("recipes")
-      .select("id, beer_id, batch_size_bbl, beers(name), recipe_ingredients(id, inventory_item_id, quantity, inventory_items(name, unit))")
+      .limit(100)
   ]);
 
   const batches = (batchesResult.data ?? []).map((r) => mapBatch(r as BatchRow));
@@ -170,7 +167,7 @@ export const getAppData = cache(async function getAppData() {
     created_at: string;
     stage: string;
     note: string;
-    batches: { id: string; beer_name: string; batch_number: string } | null;
+    batches: { beer_name: string; batch_number: string } | null;
     app_users: { full_name: string } | null;
   };
 
@@ -180,44 +177,14 @@ export const getAppData = cache(async function getAppData() {
     title: [row.batches?.beer_name, row.batches?.batch_number].filter(Boolean).join(" — "),
     detail: [row.app_users?.full_name, row.note, row.stage]
       .filter(Boolean)
-      .join(" - "),
-    batchId: row.batches?.id
+      .join(" - ")
   } satisfies Activity));
-
-  type RecipeRow = {
-    id: string;
-    beer_id: string;
-    batch_size_bbl: number;
-    beers: { name: string } | null;
-    recipe_ingredients: {
-      id: string;
-      inventory_item_id: string;
-      quantity: number;
-      inventory_items: { name: string; unit: string } | null;
-    }[];
-  };
-
-  const recipes: Recipe[] = ((recipesResult.data ?? []) as unknown as RecipeRow[]).map((r) => ({
-    id: r.id,
-    beerId: r.beer_id,
-    beerName: r.beers?.name ?? "",
-    batchSizeBbl: r.batch_size_bbl,
-    ingredients: (r.recipe_ingredients ?? []).map((ing) => ({
-      id: ing.id,
-      recipeId: r.id,
-      inventoryItemId: ing.inventory_item_id,
-      inventoryItemName: ing.inventory_items?.name ?? "",
-      quantity: ing.quantity,
-      unit: ing.inventory_items?.unit ?? ""
-    }))
-  }));
 
   return {
     batches,
     beers,
     tanks,
     inventory,
-    recipes,
     recentActivity,
     metrics: summarizeMetrics(batches, tanks, inventory),
     warning: [
@@ -225,8 +192,7 @@ export const getAppData = cache(async function getAppData() {
       beersResult.error?.message,
       tanksResult.error?.message,
       inventoryResult.error?.message,
-      logsResult.error?.message,
-      recipesResult.error?.message
+      logsResult.error?.message
     ].filter(Boolean).join(" | ") || undefined
   };
 });

@@ -2,14 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Dialog } from "@/components/dialog";
-import { batchStages } from "@/lib/options";
-import { Batch, Beer, InventoryItem, Recipe, Tank } from "@/lib/types";
+import { batchStages, packageTypes } from "@/lib/options";
+import { Batch, Beer, Tank } from "@/lib/types";
 import { generateBatchNumber } from "@/lib/utils";
 
 const emptyForm = (tankId = "") => ({
   beerId: "", stage: "Planned", plannedBrewDate: "", plannedEndDate: "",
   assignedTankId: tankId, targetVolumeBbl: "",
-  packageType: "", notes: "", deductIngredients: false
+  packageType: "", notes: ""
 });
 
 export function NewBatchDialog({
@@ -18,8 +18,6 @@ export function NewBatchDialog({
   batches,
   tanks,
   beers,
-  inventory,
-  recipes,
   createAction,
   defaultTankId = ""
 }: {
@@ -28,29 +26,26 @@ export function NewBatchDialog({
   batches: Batch[];
   tanks: Tank[];
   beers: Beer[];
-  inventory: InventoryItem[];
-  recipes: Recipe[];
   createAction: (formData: FormData) => Promise<void>;
   defaultTankId?: string;
 }) {
   const [form, setForm] = useState(() => emptyForm(defaultTankId));
   const [, startTransition] = useTransition();
 
+  // Reset form when dialog opens, pre-filling tank if provided
   useMemo(() => {
     if (open) setForm(emptyForm(defaultTankId));
   }, [open, defaultTankId]);
 
   const selectedBeer = useMemo(() => beers.find((b) => b.id === form.beerId), [beers, form.beerId]);
-  const selectedRecipe = useMemo(() => recipes.find((r) => r.beerId === form.beerId), [recipes, form.beerId]);
 
+  // Pre-fill volume from default tank
   const defaultTank = useMemo(() => tanks.find((t) => t.id === defaultTankId), [tanks, defaultTankId]);
   useMemo(() => {
     if (defaultTank && !form.targetVolumeBbl) {
       setForm((f) => ({ ...f, targetVolumeBbl: defaultTank.capacityBbl.toString() }));
     }
   }, [defaultTank]);
-
-  const inventoryMap = useMemo(() => new Map(inventory.map((i) => [i.id, i])), [inventory]);
 
   const unavailableTankIds = useMemo(() => {
     const start = form.plannedBrewDate;
@@ -93,7 +88,6 @@ export function NewBatchDialog({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    formData.set("deductIngredients", form.deductIngredients ? "true" : "false");
     startTransition(async () => {
       await createAction(formData);
       onClose();
@@ -121,52 +115,6 @@ export function NewBatchDialog({
             </>
           )}
         </label>
-
-        {/* Recipe ingredients preview */}
-        {selectedRecipe && selectedRecipe.ingredients.length > 0 && (() => {
-          const targetVol = Number(form.targetVolumeBbl);
-          const recipeVol = selectedRecipe.batchSizeBbl;
-          const scale = targetVol > 0 && recipeVol > 0 ? targetVol / recipeVol : 1;
-          const scaled = scale !== 1;
-          return (
-            <div className="lg:col-span-2 border border-[var(--border)] bg-[var(--background)] p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted">Recipe ingredients</p>
-                {scaled && (
-                  <p className="text-xs text-muted">Scaled {recipeVol} → {targetVol} bbl ({scale.toFixed(2)}×)</p>
-                )}
-              </div>
-              <div className="divide-y divide-[var(--border)]">
-                {selectedRecipe.ingredients.map((ing) => {
-                  const item = inventoryMap.get(ing.inventoryItemId);
-                  const scaledQty = +(ing.quantity * scale).toFixed(3);
-                  const sufficient = item ? item.onHand >= scaledQty : null;
-                  return (
-                    <div key={ing.id} className="flex items-center justify-between py-2 text-sm">
-                      <span>{ing.inventoryItemName}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="tabular-nums">{scaledQty} {ing.unit}</span>
-                        {sufficient === false && (
-                          <span className="text-xs text-[var(--danger)]">low stock ({item!.onHand} {ing.unit})</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <label className="flex cursor-pointer items-center gap-3 pt-1">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-[var(--accent)]"
-                  checked={form.deductIngredients}
-                  onChange={(e) => setForm((f) => ({ ...f, deductIngredients: e.target.checked }))}
-                />
-                <span className="text-sm">Deduct ingredient quantities from inventory</span>
-              </label>
-            </div>
-          );
-        })()}
-
         <label className="text-sm">
           <span className="mb-2 block text-muted">Planned brew date</span>
           <input className="input-shell" name="plannedBrewDate" required type="date" value={form.plannedBrewDate}
@@ -228,7 +176,13 @@ export function NewBatchDialog({
           <span className="mb-2 block text-muted">Target volume (bbl)</span>
           <input className="input-shell" name="targetVolumeBbl" required type="number" min="0" step="0.1" value={form.targetVolumeBbl} onChange={(e) => updateField("targetVolumeBbl", e.target.value)} />
         </label>
-
+        <label className="text-sm">
+          <span className="mb-2 block text-muted">Package type</span>
+          <select className="input-shell" name="packageType" value={form.packageType} onChange={(e) => updateField("packageType", e.target.value)}>
+            <option value="">Not set</option>
+            {packageTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
+        </label>
         <label className="text-sm lg:col-span-2">
           <span className="mb-2 block text-muted">Notes</span>
           <textarea className="input-shell min-h-20" name="notes" value={form.notes} onChange={(e) => updateField("notes", e.target.value)} />

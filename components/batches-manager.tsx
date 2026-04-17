@@ -3,29 +3,23 @@
 import { useState } from "react";
 import { BatchDialog } from "@/components/batch-dialog";
 import { NewBatchDialog } from "@/components/new-batch-dialog";
-import { Batch, Beer, InventoryItem, Recipe, Tank } from "@/lib/types";
+import { Batch, Beer, Tank } from "@/lib/types";
 import { formatDate, getTankById, stageTone } from "@/lib/utils";
 
 export function BatchesManager({
   batches,
   tanks,
   beers,
-  inventory,
-  recipes,
   createAction,
   updateAction,
-  deleteAction,
-  varianceAction
+  deleteAction
 }: {
   batches: Batch[];
   tanks: Tank[];
   beers: Beer[];
-  inventory: InventoryItem[];
-  recipes: Recipe[];
   createAction: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
-  varianceAction: (formData: FormData) => Promise<void>;
 }) {
   const [newBatchOpen, setNewBatchOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
@@ -93,12 +87,10 @@ export function BatchesManager({
         batches={batches}
         tanks={tanks}
         beers={beers}
-        inventory={inventory}
-        recipes={recipes}
         createAction={createAction}
       />
 
-      <BatchDialog batch={editingBatch} recipes={recipes} onClose={() => setEditingBatch(null)} updateAction={updateAction} deleteAction={deleteAction} varianceAction={varianceAction} />
+      <BatchDialog batch={editingBatch} onClose={() => setEditingBatch(null)} updateAction={updateAction} deleteAction={deleteAction} />
     </div>
   );
 }
