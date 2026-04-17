@@ -31,7 +31,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           id: user.id,
           email: user.email ?? "",
           name: profile?.full_name ?? (user.user_metadata?.full_name as string) ?? user.email ?? "",
-          role: (profile?.role ?? "General User") as string,
+          role: (profile?.role ?? "General User") as import("@/lib/types").UserRole,
           status: (profile?.status ?? "active") as string
         };
       }
