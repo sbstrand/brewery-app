@@ -224,7 +224,7 @@ export async function getBatchLogs(batchId: string) {
     return {
       id: row.id,
       batchId,
-      stage: row.stage,
+      stage: row.stage as import("@/lib/types").BatchStage,
       note: row.note,
       createdBy: appUser?.full_name ?? "Unknown",
       createdAt: row.created_at
