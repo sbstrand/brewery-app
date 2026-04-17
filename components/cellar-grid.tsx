@@ -83,8 +83,8 @@ export function CellarGrid({
                 : "border-[var(--border)] bg-[var(--surface-contrast)] opacity-50"
             }`}
           >
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-lg font-semibold">{tank.name}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted">{tank.name}</p>
               {status !== "In Use" && (
                 <span className={`pill text-xs ${tankTone(status)}`}>{status}</span>
               )}
@@ -96,23 +96,20 @@ export function CellarGrid({
                 onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStart(activeBatch.id); }}
                 onDragEnd={onDragEnd}
                 onClick={() => onTankClick(activeBatch)}
-                className={`mt-3 cursor-grab space-y-1 rounded active:cursor-grabbing ${isDragging ? "opacity-40" : "hover:opacity-80"} transition`}
+                className={`mt-2 cursor-grab active:cursor-grabbing ${isDragging ? "opacity-40" : "hover:opacity-80"} transition`}
                 title="Drag to move to another tank"
               >
-                <p className="font-semibold text-ink">{activeBatch.beerName}</p>
-                <p className="text-sm text-muted">{activeBatch.batchNumber}</p>
+                <p className="text-xl font-bold text-ink leading-tight">{activeBatch.beerName}</p>
                 <div className="mt-2 flex items-center gap-2">
                   <span className={`pill text-xs ${stageTone(activeBatch.stage)}`}>{activeBatch.stage}</span>
                   {activeBatch.abv && <span className="text-xs text-muted">ABV {activeBatch.abv}%</span>}
                 </div>
-                {activeBatch.stage === "Planned" ? (
-                  <p className="mt-1 text-xs text-muted">Planned brew date: {formatDate(activeBatch.plannedBrewDate)}</p>
-                ) : (
-                  <p className="mt-1 text-xs text-muted">
-                    Began {activeBatch.stage.toLowerCase()} on: {formatDate(activeBatch.updatedAt ?? activeBatch.actualBrewDate ?? activeBatch.plannedBrewDate)}
-                  </p>
-                )}
-                <p className="mt-2 text-xs text-muted opacity-60">⠿ Drag to reassign tank</p>
+                <p className="mt-2 text-xs text-muted">
+                  {activeBatch.stage === "Planned"
+                    ? `Brew: ${formatDate(activeBatch.plannedBrewDate)}`
+                    : `Since ${formatDate(activeBatch.updatedAt ?? activeBatch.actualBrewDate ?? activeBatch.plannedBrewDate)}`
+                  }
+                </p>
               </div>
             ) : isAvailable ? (
               <button

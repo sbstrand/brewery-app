@@ -29,20 +29,33 @@ export function PageHeader({
 export function SectionCard({
   title,
   subtitle,
+  icon,
+  iconCircleColor,
+  iconColor,
   action,
   children
 }: {
   title: string;
   subtitle?: string;
+  icon?: ReactNode;
+  iconCircleColor?: string;
+  iconColor?: string;
   action?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="panel p-5 sm:p-6">
       <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
-        <div>
-          <h3 className="text-xl font-semibold tracking-[-0.01em]">{title}</h3>
-          {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+        <div className="flex items-center gap-3">
+          {icon && (
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconCircleColor ?? "bg-[rgba(154,152,168,0.15)]"}`}>
+              <div className={iconColor ?? "text-muted"}>{icon}</div>
+            </div>
+          )}
+          <div>
+            <h3 className="text-xl font-semibold tracking-[-0.01em]">{title}</h3>
+            {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+          </div>
         </div>
         {action}
       </div>

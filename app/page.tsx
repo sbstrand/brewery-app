@@ -1,4 +1,4 @@
-import { createBatch, deleteBatch, logInventoryAdjustment, reassignBatchTank, saveBatchIngredientVariance, updateBatch } from "@/app/actions/data";
+import { createBatch, deleteBatch, logInventoryAdjustment, reassignBatchTank, removeBatchTank, saveBatchIngredientVariance, updateBatch } from "@/app/actions/data";
 import { Dashboard } from "@/components/dashboard";
 import { getAppData } from "@/lib/data";
 
@@ -18,6 +18,7 @@ export default async function DashboardPage() {
       reassignAction={reassignBatchTank}
       adjustAction={logInventoryAdjustment}
       varianceAction={saveBatchIngredientVariance}
+      removeTankAction={removeBatchTank}
     />
   );
 }

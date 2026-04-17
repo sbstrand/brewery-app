@@ -445,6 +445,33 @@ export async function updateUserStatus(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
+// ─── Batch tank removal ──────────────────────────────────────────────────────
+
+export async function removeBatchTank(formData: FormData) {
+  const batchId = readField(formData, "batchId");
+  const oldTankName = readField(formData, "oldTankName");
+  if (!batchId) throw new Error("Missing batchId");
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("batches")
+    .update({ assigned_tank_id: null })
+    .eq("id", batchId);
+  if (error) throw new Error(error.message);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: batch } = await supabase.from("batches").select("stage").eq("id", batchId).single();
+  await supabase.from("batch_logs").insert({
+    batch_id: batchId,
+    stage: batch?.stage ?? "Planned",
+    note: oldTankName ? `Unassigned from ${oldTankName}.` : "Tank unassigned.",
+    created_by: user?.id ?? null
+  });
+
+  revalidatePath("/");
+  revalidatePath("/batches");
+}
+
 // ─── Batch tank reassignment ──────────────────────────────────────────────────
 
 export async function reassignBatchTank(formData: FormData) {
