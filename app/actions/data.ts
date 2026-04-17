@@ -219,10 +219,8 @@ export async function getBatchLogs(batchId: string) {
     note: string;
     created_at: string;
     app_users: { full_name: string } | { full_name: string }[] | null;
-    batches: { beer_name: string; batch_number: string } | { beer_name: string; batch_number: string }[] | null;
   }) => {
     const appUser = Array.isArray(row.app_users) ? row.app_users[0] : row.app_users;
-    const batch = Array.isArray(row.batches) ? row.batches[0] : row.batches;
     return {
       id: row.id,
       batchId,
