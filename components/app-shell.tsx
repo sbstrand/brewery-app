@@ -98,7 +98,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                           { href: "/admin/beers", label: "Beer catalog" },
                           { href: "/admin/tanks", label: "Tanks" },
                           { href: "/admin/inventory", label: "Inventory" },
-                          { href: "/admin/users", label: "Users" }
+                          { href: "/admin/users", label: "Users" },
+                          { href: "/admin/reports", label: "Reports" }
                         ] as { href: import("next").Route; label: string }[]).map((item) => (
                           <Link
                             key={item.href}

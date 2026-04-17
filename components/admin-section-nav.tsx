@@ -24,6 +24,11 @@ const sections: Array<{ href: Route; label: string; description: string }> = [
     href: "/admin/inventory",
     label: "Inventory",
     description: "Manage ingredients and packaging stock."
+  },
+  {
+    href: "/admin/reports",
+    label: "Reports",
+    description: "Production summaries, batch metrics, and inventory health."
   }
 ];
 
@@ -35,7 +40,7 @@ export function AdminSectionNav() {
       <div className="mb-5 border-b border-[var(--border)] pb-4">
         <h3 className="text-xl font-semibold tracking-[-0.01em]">Admin areas</h3>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-5">
         {sections.map((section) => {
           const active = pathname === section.href;
 
@@ -43,14 +48,14 @@ export function AdminSectionNav() {
             <Link
               key={section.href}
               href={section.href}
-              className={`border p-4 transition ${
+              className={`border px-4 py-3 transition ${
                 active
                   ? "border-[var(--accent)] bg-[rgba(164,77,29,0.08)]"
                   : "border-[var(--border)] bg-white/50 hover:bg-white/80"
               }`}
             >
-              <p className="text-lg font-semibold">{section.label}</p>
-              <p className="mt-2 text-sm leading-6 text-muted">{section.description}</p>
+              <p className="text-sm font-semibold">{section.label}</p>
+              <p className="mt-1 text-xs leading-5 text-muted">{section.description}</p>
             </Link>
           );
         })}
