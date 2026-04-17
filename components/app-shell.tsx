@@ -94,12 +94,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                         <p className="text-xs uppercase tracking-[0.15em] text-muted">Admin</p>
                       </div>
                       <div className="py-1">
-                        {[
+                        {([
                           { href: "/admin/beers", label: "Beer catalog" },
                           { href: "/admin/tanks", label: "Tanks" },
                           { href: "/admin/inventory", label: "Inventory" },
                           { href: "/admin/users", label: "Users" }
-                        ].map((item) => (
+                        ] as { href: import("next").Route; label: string }[]).map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}
