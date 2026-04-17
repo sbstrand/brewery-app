@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
-import { signOut } from "@/app/actions/auth";
+import { useTheme } from "@/components/theme-provider";
 
 const NO_HEADER_PATHS = ["/login", "/reset-password"];
 
