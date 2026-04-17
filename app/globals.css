@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark mode — default (3 Nations) */
+  --background: #1e2028;
+  --surface: #272a35;
+  --surface-strong: #2f3240;
+  --surface-contrast: #13141a;
+  --ink: #eeecea;
+  --muted: #9a98a8;
+  --accent: #c9a84c;
+  --accent-strong: #a8872e;
+  --border: rgba(238, 236, 234, 0.12);
+  --success: #4caf7d;
+  --warning: #e0a030;
+  --danger: #e05c4b;
+  --shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+}
+
+html.light {
+  /* Light mode */
+  --background: #f3ecdf;
+  --surface: #fbf6ec;
+  --surface-strong: #fffdf8;
+  --surface-contrast: #e8dfc8;
+  --ink: #1e1a14;
+  --muted: #6f5b49;
+  --accent: #a44d1d;
+  --accent-strong: #6c2f12;
+  --border: rgba(61, 37, 20, 0.14);
+  --success: #2b6e4a;
+  --warning: #a86711;
+  --danger: #8b2d2d;
+  --shadow: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  min-height: 100vh;
+  background: var(--background);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.grain-shell {
+  position: relative;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 0.4rem;
+}
+
+.stat-card {
+  padding: 1rem 1.25rem;
+}
+
+.table-shell {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--surface-contrast);
+}
+
+.table-shell table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-shell th,
+.table-shell td {
+  text-align: left;
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.table-shell th {
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.table-shell tr:last-child td {
+  border-bottom: none;
+}
+
+.table-shell tr:hover td {
+  background: rgba(201, 168, 76, 0.05);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pill-neutral {
+  background: rgba(154, 152, 168, 0.2);
+  color: #c0bece;
+}
+
+.pill-success {
+  background: rgba(76, 175, 125, 0.18);
+  color: #6dd4a0;
+}
+
+.pill-warning {
+  background: rgba(224, 160, 48, 0.18);
+  color: #e8b84e;
+}
+
+.pill-danger {
+  background: rgba(224, 92, 75, 0.18);
+  color: #f07060;
+}
+
+.ops-divider > * + * {
+  border-top: 1px solid var(--border);
+}
+
+.ops-item {
+  padding: 1rem 0;
+}
+
+.input-shell {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface-contrast);
+  border-radius: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  color: var(--ink);
+}
+
+.input-shell:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+.input-shell option {
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+.button-primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #13141a;
+  border-radius: 0.25rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.button-primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.button-primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.button-secondary {
+  border: 1px solid var(--border);
+  background: rgba(238, 236, 234, 0.07);
+  color: var(--ink);
+  border-radius: 0.25rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.button-secondary:hover {
+  background: rgba(238, 236, 234, 0.12);
+  border-color: rgba(238, 236, 234, 0.22);
+}
+
+.button-secondary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Light mode overrides */
+html.light .table-shell {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+html.light .table-shell th {
+  background: rgba(122, 90, 58, 0.05);
+}
+
+html.light .input-shell {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+html.light .button-secondary {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+html.light .button-primary {
+  color: white;
+}
