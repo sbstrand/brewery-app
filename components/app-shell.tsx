@@ -5,12 +5,14 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { useTheme } from "@/components/theme-provider";
+import { signOut } from "@/app/actions/auth";
 
 const NO_HEADER_PATHS = ["/login", "/reset-password"];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { currentUser, isAdmin } = useAuth();
+  const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -77,8 +79,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                     {currentUser.email && <p className="mt-0.5 text-xs text-muted">{currentUser.email}</p>}
                   </div>
                   <div className="py-1">
-                    <button type="button" disabled className="w-full px-4 py-2 text-left text-sm text-muted opacity-50">
-                      Manage account
+                    <button
+                      type="button"
+                      onClick={toggle}
+                      className="w-full px-4 py-2 text-left text-sm text-ink transition hover:bg-[var(--background)] flex items-center justify-between"
+                    >
+                      <span>Appearance</span>
+                      <span className="text-xs text-muted">{theme === "dark" ? "🌙 Dark" : "☀️ Light"}</span>
                     </button>
                   </div>
                   {isAdmin && (
