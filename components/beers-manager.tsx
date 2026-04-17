@@ -5,7 +5,7 @@ import { Dialog } from "@/components/dialog";
 import { packageTypes } from "@/lib/options";
 import { Beer } from "@/lib/types";
 
-const emptyForm = { name: "", style: "", productionDays: "", targetOg: "", targetFg: "", targetAbv: "", targetIbu: "", defaultPackageType: "", notes: "" };
+const emptyForm = { name: "", style: "", productionDays: "", targetAbv: "", targetIbu: "", defaultPackageType: "", notes: "" };
 
 export function BeersManager({
   beers,
@@ -38,8 +38,6 @@ export function BeersManager({
       name: beer.name,
       style: beer.style,
       productionDays: beer.productionDays?.toString() ?? "",
-      targetOg: beer.targetOg?.toString() ?? "",
-      targetFg: beer.targetFg?.toString() ?? "",
       targetAbv: beer.targetAbv?.toString() ?? "",
       targetIbu: beer.targetIbu?.toString() ?? "",
       defaultPackageType: beer.defaultPackageType ?? "",
@@ -154,14 +152,6 @@ export function BeersManager({
           <label className="text-sm">
             <span className="mb-2 block text-muted">Production time (days)</span>
             <input className="input-shell" name="productionDays" type="number" min="1" step="1" value={form.productionDays} onChange={(e) => updateField("productionDays", e.target.value)} />
-          </label>
-          <label className="text-sm">
-            <span className="mb-2 block text-muted">Target OG</span>
-            <input className="input-shell" name="targetOg" type="number" step="0.001" value={form.targetOg} onChange={(e) => updateField("targetOg", e.target.value)} />
-          </label>
-          <label className="text-sm">
-            <span className="mb-2 block text-muted">Target FG</span>
-            <input className="input-shell" name="targetFg" type="number" step="0.001" value={form.targetFg} onChange={(e) => updateField("targetFg", e.target.value)} />
           </label>
           <label className="text-sm">
             <span className="mb-2 block text-muted">Target ABV</span>
