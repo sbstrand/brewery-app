@@ -3,8 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { Dialog } from "@/components/dialog";
 import { getBatchLogs } from "@/app/actions/data";
-import { Batch, BatchLog, BatchStage } from "@/lib/types";
-import { deriveTankStatus, formatDate, stageTone, tankTone } from "@/lib/utils";
+import { Batch, BatchLog, BatchStage, Recipe } from "@/lib/types";
+import { formatDate, stageTone } from "@/lib/utils";
 import { useAuth } from "@/components/auth-provider";
 
 const STAGE_ORDER: BatchStage[] = ["Planned", "Brewing", "Fermenting", "Conditioning", "Packaging", "Completed"];
@@ -41,23 +41,30 @@ function batchToEditState(batch: Batch): EditState {
 
 export function BatchDialog({
   batch,
+  recipes,
   onClose,
   updateAction,
-  deleteAction
+  deleteAction,
+  varianceAction
 }: {
   batch: Batch | null;
+  recipes: Recipe[];
   onClose: () => void;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
+  varianceAction: (formData: FormData) => Promise<void>;
 }) {
   const { isAdmin } = useAuth();
   const [editState, setEditState] = useState<EditState | null>(null);
   const [logs, setLogs] = useState<BatchLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [ingredientActuals, setIngredientActuals] = useState<Record<string, string>>({});
   const [, startTransition] = useTransition();
 
+  const recipe = batch?.beerId ? recipes.find((r) => r.beerId === batch.beerId) : null;
+
   useEffect(() => {
-    if (!batch) { setLogs([]); setEditState(null); return; }
+    if (!batch) { setLogs([]); setEditState(null); setIngredientActuals({}); return; }
     setEditState(batchToEditState(batch));
     setLogsLoading(true);
     getBatchLogs(batch.id).then((data) => {
@@ -66,18 +73,60 @@ export function BatchDialog({
     });
   }, [batch]);
 
+  // Pre-fill actuals with scaled expected quantities — only on first load, not after saves
+  useEffect(() => {
+    if (!recipe || !batch || Object.keys(ingredientActuals).length > 0) return;
+    const vol = Number(editState?.actualVolumeBbl) || batch.actualVolumeBbl || batch.targetVolumeBbl;
+    const scale = recipe.batchSizeBbl > 0 ? vol / recipe.batchSizeBbl : 1;
+    const defaults: Record<string, string> = {};
+    recipe.ingredients.forEach((ing) => {
+      defaults[ing.inventoryItemId] = +(ing.quantity * scale).toFixed(3) + "";
+    });
+    setIngredientActuals(defaults);
+  }, [recipe, batch?.id]);
+
+  function buildVarianceFormData() {
+    if (!batch || !recipe) return null;
+    const vol = Number(editState?.actualVolumeBbl) || batch.actualVolumeBbl || batch.targetVolumeBbl;
+    const scale = recipe.batchSizeBbl > 0 ? vol / recipe.batchSizeBbl : 1;
+    const formData = new FormData();
+    formData.set("batchId", batch.id);
+    formData.set("beerId", batch.beerId ?? "");
+    recipe.ingredients.forEach((ing) => {
+      formData.append("ingredientItemId", ing.inventoryItemId);
+      formData.append("ingredientActual", ingredientActuals[ing.inventoryItemId] ?? "0");
+      formData.append("ingredientExpected", +(ing.quantity * scale).toFixed(3) + "");
+    });
+    return formData;
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!batch || !editState) return;
     const formData = new FormData(event.currentTarget);
     startTransition(async () => {
-      await updateAction(formData);
+      const ops: Promise<void>[] = [updateAction(formData)];
+      if (isBrewing && recipe && Object.keys(ingredientActuals).length > 0) {
+        const vfd = buildVarianceFormData();
+        if (vfd) ops.push(varianceAction(vfd));
+      }
+      await Promise.all(ops);
       onClose();
+    });
+  }
+
+  function handleVarianceSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const vfd = buildVarianceFormData();
+    if (!vfd) return;
+    startTransition(async () => {
+      await varianceAction(vfd);
     });
   }
 
   const targetStage = editState?.stage;
   const isCompleted = batch?.stage === "Completed";
+  const isBrewing = editState?.stage === "Brewing";
 
   return (
     <Dialog
@@ -105,41 +154,52 @@ export function BatchDialog({
             </div>
           </div>
 
-          {/* Batch summary (read-only header) */}
+          {/* Batch summary */}
           <div className="grid grid-cols-2 gap-3 border border-[var(--border)] bg-[var(--background)] p-4 text-sm sm:grid-cols-4">
-            <div>
-              <p className="text-muted">Style</p>
-              <p className="mt-1 font-semibold">{batch.style}</p>
-            </div>
-            <div>
-              <p className="text-muted">Brew date</p>
-              <p className="mt-1 font-semibold">{formatDate(batch.actualBrewDate ?? batch.plannedBrewDate)}</p>
-            </div>
-            <div>
-              <p className="text-muted">Est. done</p>
-              <p className="mt-1 font-semibold">{formatDate(batch.plannedEndDate)}</p>
-            </div>
-            <div>
-              <p className="text-muted">Volume</p>
-              <p className="mt-1 font-semibold">{batch.actualVolumeBbl ?? batch.targetVolumeBbl} bbl</p>
-            </div>
-            <div>
-              <p className="text-muted">OG</p>
-              <p className="mt-1 font-semibold">{batch.og ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-muted">FG</p>
-              <p className="mt-1 font-semibold">{batch.fg ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-muted">ABV</p>
-              <p className="mt-1 font-semibold">{batch.abv ? `${batch.abv}%` : "—"}</p>
-            </div>
-            <div>
-              <p className="text-muted">IBU</p>
-              <p className="mt-1 font-semibold">{batch.ibu ?? "—"}</p>
-            </div>
+            <div><p className="text-muted">Style</p><p className="mt-1 font-semibold">{batch.style}</p></div>
+            <div><p className="text-muted">Brew date</p><p className="mt-1 font-semibold">{formatDate(batch.actualBrewDate ?? batch.plannedBrewDate)}</p></div>
+            <div><p className="text-muted">Est. done</p><p className="mt-1 font-semibold">{formatDate(batch.plannedEndDate)}</p></div>
+            <div><p className="text-muted">Volume</p><p className="mt-1 font-semibold">{batch.actualVolumeBbl ?? batch.targetVolumeBbl} bbl</p></div>
+            <div><p className="text-muted">OG</p><p className="mt-1 font-semibold">{batch.og ?? "—"}</p></div>
+            <div><p className="text-muted">FG</p><p className="mt-1 font-semibold">{batch.fg ?? "—"}</p></div>
+            <div><p className="text-muted">ABV</p><p className="mt-1 font-semibold">{batch.abv ? `${batch.abv}%` : "—"}</p></div>
+            <div><p className="text-muted">IBU</p><p className="mt-1 font-semibold">{batch.ibu ?? "—"}</p></div>
           </div>
+
+          {/* Ingredient variance — only shown when Brewing and recipe exists */}
+          {isBrewing && recipe && recipe.ingredients.length > 0 && (
+            <form onSubmit={handleVarianceSubmit}>
+              <p className="mb-3 text-xs uppercase tracking-[0.15em] text-muted">Ingredient quantities</p>
+              <div className="divide-y divide-[var(--border)] border border-[var(--border)]">
+                {recipe.ingredients.map((ing) => {
+                  const vol = Number(editState?.actualVolumeBbl) || batch.actualVolumeBbl || batch.targetVolumeBbl;
+                  const scale = recipe.batchSizeBbl > 0 ? vol / recipe.batchSizeBbl : 1;
+                  const expected = +(ing.quantity * scale).toFixed(3);
+                  const actual = Number(ingredientActuals[ing.inventoryItemId] ?? expected);
+                  const diff = +(actual - expected).toFixed(3);
+                  return (
+                    <div key={ing.id} className="flex items-center gap-4 px-4 py-3">
+                      <span className="flex-1 text-sm">{ing.inventoryItemName}</span>
+                      <span className="text-xs text-muted w-24 text-right">expected: {expected} {ing.unit}</span>
+                      <input
+                        className="input-shell w-24 shrink-0 text-sm"
+                        style={{ width: "6rem" }}
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        value={ingredientActuals[ing.inventoryItemId] ?? expected}
+                        onChange={(e) => setIngredientActuals((s) => ({ ...s, [ing.inventoryItemId]: e.target.value }))}
+                      />
+                      <span className="text-xs w-16 text-right tabular-nums" style={{ color: diff > 0 ? "var(--danger)" : diff < 0 ? "var(--accent)" : "var(--muted)" }}>
+                        {diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "—"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <button type="submit" className="button-secondary mt-3 text-sm">Save ingredient actuals</button>
+            </form>
+          )}
 
           {/* Update form */}
           {!isCompleted && (
@@ -162,6 +222,16 @@ export function BatchDialog({
                         if (next === "Brewing" && !s.actualBrewDate) updates.actualBrewDate = today();
                         return { ...s, ...updates };
                       });
+                      // Seed ingredient actuals when switching to Brewing
+                      if (next === "Brewing" && recipe && batch) {
+                        const vol = Number(editState?.actualVolumeBbl) || batch.actualVolumeBbl || batch.targetVolumeBbl;
+                        const scale = recipe.batchSizeBbl > 0 ? vol / recipe.batchSizeBbl : 1;
+                        const defaults: Record<string, string> = {};
+                        recipe.ingredients.forEach((ing) => {
+                          defaults[ing.inventoryItemId] = +(ing.quantity * scale).toFixed(3) + "";
+                        });
+                        setIngredientActuals(defaults);
+                      }
                     }}
                   >
                     {STAGE_ORDER.map((s) => <option key={s} value={s}>{s}</option>)}

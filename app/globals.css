@@ -123,6 +123,31 @@ a {
   color: #c0bece;
 }
 
+.pill-planned {
+  background: rgba(154, 152, 168, 0.2);
+  color: #c0bece;
+}
+
+.pill-brewing {
+  background: rgba(224, 130, 48, 0.2);
+  color: #e8944e;
+}
+
+.pill-fermenting {
+  background: rgba(100, 160, 220, 0.2);
+  color: #7ab8e8;
+}
+
+.pill-conditioning {
+  background: rgba(140, 100, 220, 0.2);
+  color: #b08ae8;
+}
+
+.pill-packaging {
+  background: rgba(224, 200, 48, 0.2);
+  color: #e8d44e;
+}
+
 .pill-success {
   background: rgba(76, 175, 125, 0.18);
   color: #6dd4a0;

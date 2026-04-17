@@ -78,6 +78,7 @@ create table if not exists batches (
   package_type package_type,
   package_date date,
   packaged_units integer,
+  deduct_ingredients boolean not null default false,
   notes text not null default '',
   created_by uuid references app_users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -116,7 +117,39 @@ create table if not exists batch_logs (
   created_at timestamptz not null default now()
 );
 
--- Updated at trigger
+create table if not exists recipes (
+  id uuid primary key default gen_random_uuid(),
+  beer_id uuid not null unique references beers(id) on delete cascade,
+  batch_size_bbl numeric(8,2) not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists recipe_ingredients (
+  id uuid primary key default gen_random_uuid(),
+  recipe_id uuid not null references recipes(id) on delete cascade,
+  inventory_item_id uuid not null references inventory_items(id) on delete cascade,
+  quantity numeric(10,3) not null,
+  created_at timestamptz not null default now()
+);
+
+create or replace trigger recipes_set_updated_at
+before update on recipes
+for each row
+execute function set_updated_at();
+
+alter table recipes enable row level security;
+alter table recipe_ingredients enable row level security;
+
+create policy "recipes_select" on recipes for select to authenticated using (true);
+create policy "recipes_all_admin" on recipes for all to authenticated
+  using (is_admin()) with check (is_admin());
+
+create policy "recipe_ingredients_select" on recipe_ingredients for select to authenticated using (true);
+create policy "recipe_ingredients_all_admin" on recipe_ingredients for all to authenticated
+  using (is_admin()) with check (is_admin());
+
+
 create or replace function set_updated_at()
 returns trigger
 language plpgsql

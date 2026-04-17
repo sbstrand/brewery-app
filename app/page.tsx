@@ -1,9 +1,9 @@
-import { createBatch, deleteBatch, logInventoryAdjustment, reassignBatchTank, updateBatch } from "@/app/actions/data";
+import { createBatch, deleteBatch, logInventoryAdjustment, reassignBatchTank, saveBatchIngredientVariance, updateBatch } from "@/app/actions/data";
 import { Dashboard } from "@/components/dashboard";
 import { getAppData } from "@/lib/data";
 
 export default async function DashboardPage() {
-  const { batches, beers, tanks, inventory, recentActivity } = await getAppData();
+  const { batches, beers, tanks, inventory, recentActivity, recipes } = await getAppData();
   return (
     <Dashboard
       batches={batches}
@@ -11,11 +11,13 @@ export default async function DashboardPage() {
       tanks={tanks}
       inventory={inventory}
       recentActivity={recentActivity}
+      recipes={recipes}
       updateAction={updateBatch}
       createAction={createBatch}
       deleteAction={deleteBatch}
       reassignAction={reassignBatchTank}
       adjustAction={logInventoryAdjustment}
+      varianceAction={saveBatchIngredientVariance}
     />
   );
 }

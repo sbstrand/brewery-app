@@ -107,7 +107,7 @@ function ItemRow({
         <div className="flex items-center gap-2 shrink-0">
           <span className="pill pill-warning text-xs">Reorder soon</span>
           {!adjusting && (
-            <button type="button" onClick={() => setAdjusting(true)} className="button-secondary text-xs py-1 px-3">
+            <button type="button" onClick={() => setAdjusting(true)} className="button-secondary text-sm">
               Adjust
             </button>
           )}

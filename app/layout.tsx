@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth-provider";
 import { AppShell } from "@/components/app-shell";
 import { ThemeProvider } from "@/components/theme-provider";
+import { NotificationProvider } from "@/components/notification-context";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/env";
 import "./globals.css";
@@ -41,12 +42,24 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   }
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              var t = localStorage.getItem('theme');
+              if (t === 'light') document.documentElement.classList.add('light');
+            } catch(e) {}
+          })();
+        `}} />
+      </head>
       <body>
         <ThemeProvider>
-          <AuthProvider serverUser={serverUser}>
-            <AppShell>{children}</AppShell>
-          </AuthProvider>
+          <NotificationProvider>
+            <AuthProvider serverUser={serverUser}>
+              <AppShell>{children}</AppShell>
+            </AuthProvider>
+          </NotificationProvider>
         </ThemeProvider>
       </body>
     </html>
